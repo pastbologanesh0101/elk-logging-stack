@@ -21,7 +21,10 @@ the underlying grok base patterns:
     NONNEGINT           -> \\d+
 """
 
+from __future__ import annotations
+
 import re
+from typing import Any, Optional
 
 GROK_EQUIVALENT_REGEX = re.compile(
     r"^(?P<timestamp>\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}[.,]\d+) "
@@ -34,7 +37,7 @@ GROK_EQUIVALENT_REGEX = re.compile(
 )
 
 
-def parse_log_line(line):
+def parse_log_line(line: Optional[Any]) -> Optional[dict]:
     """Parse one app log line, returning a dict of extracted fields (with
     status/duration_ms coerced to int, mirroring the mutate filter in
     logstash.conf), or None if the line does not match.
