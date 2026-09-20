@@ -56,6 +56,17 @@ class DockerComposeConfigTestCase(unittest.TestCase):
         self.assertTrue(any("logstash.conf" in v for v in volumes))
         self.assertTrue(any("app/logs" in v for v in volumes))
 
+    def test_all_services_are_attached_to_the_elk_network(self):
+        # Elasticsearch, Logstash and Kibana all need to be on the same
+        # docker-compose network to reach each other by service name (e.g.
+        # "elasticsearch:9200" in logstash.conf) — a service left off the
+        # network would fail to resolve its peers even though the compose
+        # file otherwise looks fine.
+        services = self.compose["services"]
+        for name in ("elasticsearch", "logstash", "kibana"):
+            networks = services[name].get("networks", [])
+            self.assertIn("elk", networks, msg=f"{name} is not attached to the elk network")
+
 
 class LogstashConfigTestCase(unittest.TestCase):
     def test_logstash_conf_file_exists_and_is_non_empty(self):
@@ -131,6 +142,16 @@ class GrokPatternTestCase(unittest.TestCase):
     def test_malformed_line_does_not_match(self):
         line = "this is not a log line at all"
         self.assertIsNone(parse_log_line(line))
+
+    def test_parses_line_with_uncommon_http_method(self):
+        # The app itself only ever emits GET/POST, but the grok pattern's
+        # method field is %{WORD:method} with no fixed vocabulary, so any
+        # HTTP verb (PATCH, DELETE, PUT, ...) must still parse correctly.
+        line = "2026-09-18 12:00:13,050 INFO service=app method=DELETE path=/orders/3 status=204 duration_ms=6"
+        fields = parse_log_line(line)
+        self.assertIsNotNone(fields)
+        self.assertEqual(fields["method"], "DELETE")
+        self.assertEqual(fields["status"], 204)
 
 
 if __name__ == "__main__":
