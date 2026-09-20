@@ -38,7 +38,15 @@ def parse_log_line(line):
     """Parse one app log line, returning a dict of extracted fields (with
     status/duration_ms coerced to int, mirroring the mutate filter in
     logstash.conf), or None if the line does not match.
+
+    `None`, non-string input, and empty/whitespace-only lines are treated
+    as "does not match" rather than raising: a real Logstash `file` input
+    can hand the pipeline a blank line (e.g. a trailing newline at EOF),
+    and this mirrors that grok simply produces a `_grokparsefailure` tag
+    instead of crashing the pipeline.
     """
+    if not isinstance(line, str) or not line.strip():
+        return None
     match = GROK_EQUIVALENT_REGEX.match(line.strip())
     if not match:
         return None

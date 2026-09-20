@@ -153,6 +153,16 @@ class GrokPatternTestCase(unittest.TestCase):
         self.assertEqual(fields["method"], "DELETE")
         self.assertEqual(fields["status"], 204)
 
+    def test_none_input_returns_none_instead_of_raising(self):
+        # A real Logstash file input can hand the pipeline a blank/EOF
+        # line; parse_log_line must degrade to "no match" rather than
+        # raising AttributeError on line.strip().
+        self.assertIsNone(parse_log_line(None))
+
+    def test_empty_and_whitespace_only_lines_return_none(self):
+        self.assertIsNone(parse_log_line(""))
+        self.assertIsNone(parse_log_line("   \n"))
+
 
 if __name__ == "__main__":
     unittest.main()
