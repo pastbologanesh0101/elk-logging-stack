@@ -1,5 +1,8 @@
 # ELK Logging Stack
 
+[![tests](https://github.com/pastbologanesh0101/elk-logging-stack/actions/workflows/tests.yml/badge.svg)](https://github.com/pastbologanesh0101/elk-logging-stack/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A small, real Flask application that emits structured log lines, plus a
 complete ELK (Elasticsearch, Logstash, Kibana) configuration wired up to
 ingest and parse them.
@@ -52,6 +55,25 @@ to run. Swapping to a `beats` input (Filebeat sitting in front of Logstash
 on port 5044) would be a small, well-understood change for a production
 setup with multiple hosts — the `logstash.conf` input block is the only
 place that would need to change.
+
+### How `grok_pattern.py` mirrors the real filter
+
+`logstash/logstash.conf`'s `grok` filter and `logstash/grok_pattern.py`
+express the *same* pattern in two different engines: Logstash's grok
+(built on Oniguruma regex plus named base patterns like
+`%{TIMESTAMP_ISO8601}` and `%{WORD}`) and Python's `re`. `grok_pattern.py`
+is not imported by the pipeline and does not run inside Logstash at all —
+it exists purely so this pattern's *behavior* can be exercised with
+`pytest` in an environment without a Logstash process. Each grok base
+pattern used in `logstash.conf` has a one-to-one hand-translated regex
+group in `grok_pattern.py` (documented in that file's module docstring),
+and the `mutate { convert => ... }` block that coerces `status` and
+`duration_ms` to integers in the real pipeline has an equivalent
+`int(...)` coercion in `parse_log_line`. If the grok pattern in
+`logstash.conf` ever changes, `grok_pattern.py`'s regex needs a matching
+change or the two will silently drift apart — there is no automated check
+tying them together beyond both being tested against the same sample log
+lines in `tests/test_config.py`.
 
 ## Log line format
 
