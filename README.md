@@ -137,7 +137,7 @@ pytest -v
   log lines, including a query-string path and 4xx/5xx statuses.
 
 CI (`.github/workflows/tests.yml`) runs the full suite on push/PR against
-Python 3.11 and 3.12, with no Docker dependency.
+Python 3.11, 3.12 and 3.13, with no Docker dependency.
 
 ## Troubleshooting / FAQ
 
