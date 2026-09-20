@@ -216,11 +216,14 @@ logstash/
   logstash.conf       Logstash pipeline: file input -> grok filter -> ES output
   grok_pattern.py     Python regex translation of the grok pattern, for testing
 docker-compose.yml    Elasticsearch + Logstash + Kibana
+examples/
+  parse_sample_log_file.py   Parse sample/real log lines with grok_pattern.py
+                              and print structured events + parse failures
 tests/
   test_app.py         Flask app + logging tests
   test_config.py       docker-compose + grok pattern tests
 .github/workflows/
-  tests.yml           CI: pytest on 3.11 and 3.12
+  tests.yml           CI: pytest on 3.11, 3.12 and 3.13
 ```
 
 ## License

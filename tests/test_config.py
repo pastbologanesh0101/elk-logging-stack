@@ -17,6 +17,7 @@ import unittest
 
 import yaml
 
+from examples.parse_sample_log_file import parse_lines
 from logstash.grok_pattern import parse_log_line
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -162,6 +163,21 @@ class GrokPatternTestCase(unittest.TestCase):
     def test_empty_and_whitespace_only_lines_return_none(self):
         self.assertIsNone(parse_log_line(""))
         self.assertIsNone(parse_log_line("   \n"))
+
+
+class ParseSampleLogFileExampleTestCase(unittest.TestCase):
+    """Covers examples/parse_sample_log_file.py's parse_lines helper."""
+
+    def test_parse_lines_separates_events_from_failures_and_skips_blank_lines(self):
+        lines = [
+            "2026-09-18 12:00:01,123 INFO service=app method=GET path=/orders status=200 duration_ms=45",
+            "",
+            "not a real log line",
+        ]
+        events, failures = parse_lines(lines)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["method"], "GET")
+        self.assertEqual(failures, ["not a real log line"])
 
 
 if __name__ == "__main__":
