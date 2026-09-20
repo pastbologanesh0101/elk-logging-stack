@@ -139,6 +139,47 @@ pytest -v
 CI (`.github/workflows/tests.yml`) runs the full suite on push/PR against
 Python 3.11 and 3.12, with no Docker dependency.
 
+## Troubleshooting / FAQ
+
+**I have Docker running — how do I actually verify this end-to-end?**
+Run `docker compose up -d`, wait for `docker compose ps` to show
+`elasticsearch` as healthy (it has a `healthcheck` that curls
+`/_cluster/health`; Logstash and Kibana don't wait for it automatically,
+so give it 20-30s), then run the app (`python -m app.main`) and hit a few
+endpoints with `curl`. Check `docker logs elk-logstash` for a line like
+`Pipeline started` and no `_grokparsefailure` lines, then confirm data
+landed with `curl http://localhost:9200/elk-logging-stack-*/_search`
+before bothering to open Kibana.
+
+**Why do the tests validate YAML structure instead of starting containers?**
+Because the containers were never started in this environment (see
+"Honest limitation" above) — there was no Docker daemon to start them
+against. Structural YAML checks and the Python-regex mirror of the grok
+pattern are what's actually verifiable without Docker, so that's what
+`tests/test_config.py` checks. They catch a wrong port, a missing
+`depends_on`, or a grok field that stops matching a real log line; they
+cannot catch a typo'd Elasticsearch index template or a Kibana version
+mismatch, which only show up when the real stack runs.
+
+**My log line isn't showing up as parsed data in Kibana — why?**
+The most common cause is the line not matching
+`logstash/logstash.conf`'s grok pattern at all, which Logstash reports as
+a `_grokparsefailure` tag on the event rather than a dropped line —
+check `docker logs elk-logstash` for it. That pattern expects the *exact*
+format `TIMESTAMP LEVEL service=app method=METHOD path=PATH
+status=STATUS duration_ms=DURATION` with single spaces between fields; a
+stray `print()` statement anywhere in the app (instead of going through
+`logger`) will write a line to stdout that never reaches
+`app/logs/app.log` at all, and therefore never reaches Logstash either.
+
+**Why does `path` capture the whole query string instead of just the route?**
+By design — `%{NOTSPACE:path}` (translated as `\S+` in
+`logstash/grok_pattern.py`) matches anything up to the next space, so
+`/orders?limit=5&sort=asc` is captured verbatim in one field rather than
+split into a route and query params. If you need them split in
+Elasticsearch, add a `kv` or `dissect` filter on the `path` field in
+`logstash.conf` after the grok filter.
+
 ## Project layout
 
 ```
