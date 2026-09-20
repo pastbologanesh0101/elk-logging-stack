@@ -30,17 +30,32 @@ _ORDERS = {
 }
 
 
-def _build_logger(log_file=LOG_FILE):
+def _resolve_log_level(env_value):
+    """Translate a LOG_LEVEL env var value (e.g. "DEBUG") into a logging
+    level constant, falling back to INFO for unset/blank/invalid values
+    rather than raising - a typo'd env var should degrade quietly, not
+    crash the app at import time.
+    """
+    if not env_value:
+        return logging.INFO
+    return getattr(logging, env_value.strip().upper(), logging.INFO)
+
+
+def _build_logger(log_file=LOG_FILE, level=None):
     """Create and return the app's logger, configured with the exact line
     format the Logstash grok/dissect filter expects.
 
     A distinct logger name/handlers are used (rather than the root logger)
     so tests can attach their own handler and capture output in isolation.
+    The log level defaults to INFO but can be raised/lowered (e.g. to
+    DEBUG for local troubleshooting, or WARNING to quiet down noisy
+    environments) via the LOG_LEVEL env var, without touching grok parsing
+    since %{LOGLEVEL:level} already accepts any standard level name.
     """
     os.makedirs(os.path.dirname(log_file), exist_ok=True)
 
     logger = logging.getLogger("elk_app")
-    logger.setLevel(logging.INFO)
+    logger.setLevel(level if level is not None else _resolve_log_level(os.environ.get("LOG_LEVEL")))
     logger.propagate = False
 
     # Avoid attaching duplicate handlers if the app module is imported twice

@@ -9,7 +9,7 @@ import logging
 import re
 import unittest
 
-from app.main import create_app, logger
+from app.main import _resolve_log_level, create_app, logger
 
 LOG_LINE_RE = re.compile(
     r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d+ (INFO|WARNING|ERROR) "
@@ -116,6 +116,19 @@ class FlaskAppTestCase(unittest.TestCase):
         self.assertEqual(len(self.capture.lines), 1)
         line = self.capture.lines[0]
         self.assertIn("path=/orders?limit=5&sort=asc", line)
+
+
+class LogLevelConfigTestCase(unittest.TestCase):
+    """Covers the LOG_LEVEL env var used by app.main._build_logger."""
+
+    def test_resolve_log_level_accepts_known_level_names(self):
+        self.assertEqual(_resolve_log_level("DEBUG"), logging.DEBUG)
+        self.assertEqual(_resolve_log_level("warning"), logging.WARNING)
+
+    def test_resolve_log_level_falls_back_to_info_for_unset_or_invalid(self):
+        self.assertEqual(_resolve_log_level(None), logging.INFO)
+        self.assertEqual(_resolve_log_level(""), logging.INFO)
+        self.assertEqual(_resolve_log_level("not-a-level"), logging.INFO)
 
 
 if __name__ == "__main__":

@@ -104,6 +104,10 @@ curl http://localhost:5000/boom
 
 Log lines will appear on stdout and accumulate in `app/logs/app.log`.
 
+Set the `LOG_LEVEL` env var (e.g. `LOG_LEVEL=DEBUG python -m app.main`) to
+raise or lower the app's log verbosity; it accepts any standard `logging`
+level name and falls back to `INFO` if unset or invalid.
+
 ## Completing the loop with Docker
 
 Once Docker is available:
